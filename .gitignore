@@ -39,6 +39,7 @@ conda-meta/
 
 # IDE/editor files
 .vscode/
+.vscode
 .idea/
 *.sublime-project
 *.sublime-workspace
