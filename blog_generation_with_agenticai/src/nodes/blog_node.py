@@ -1,4 +1,6 @@
 from src.states.blog_state import BlogState
+from langchain_core.messages import HumanMessage, AIMessage
+from src.states.blog_state import Blog
 
 class BlogNode:
     """
@@ -73,4 +75,59 @@ class BlogNode:
             }
         return state  # Pass through if missing data
 
-            
+
+    def translation(self, state: BlogState):
+        blog_content = state["blog"]["content"]
+        
+        prompt = f"""
+        Translate this blog to {state["current_language"]} while keeping the SAME structure.
+        
+        Respond as VALID JSON only with this exact schema:
+        {{
+            "title": "translated title here",
+            "content": "full translated markdown content here"
+        }}
+        
+        ORIGINAL:
+        {blog_content}
+        """
+        
+        messages = [HumanMessage(content=prompt)]
+        
+        # Use simple invoke + JSON parsing (no structured output)
+        response = self.llm.invoke(messages)
+        
+        # Extract JSON from response
+        import json
+        import re
+        json_match = re.search(r'\{.*\}', response.content, re.DOTALL)
+        if json_match:
+            blog_data = json.loads(json_match.group())
+        else:
+            blog_data = {"title": "Translated Title", "content": response.content}
+        
+        return {
+            "blog": {
+                "title": blog_data["title"],
+                "content": blog_data["content"]
+            }
+        }
+
+    
+    def route(self, state: BlogState):
+        return {"current_language": state["current_language"]}
+    
+    def route_decision(self, state: BlogState):
+        
+        """
+        Route the content to the respective translation function.
+        """
+        
+        if state["current_language"] == "nepali":
+            return "nepali"
+        
+        elif state["current_language"] == "french":
+            return "french"
+
+        else:
+            return state["current_language"]
